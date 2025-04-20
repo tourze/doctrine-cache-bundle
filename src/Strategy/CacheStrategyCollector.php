@@ -3,6 +3,7 @@
 namespace Tourze\DoctrineCacheBundle\Strategy;
 
 use Symfony\Component\DependencyInjection\Attribute\TaggedIterator;
+use Tourze\CacheStrategy\CacheStrategy;
 
 class CacheStrategyCollector implements CacheStrategy
 {

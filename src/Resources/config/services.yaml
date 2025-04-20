@@ -8,3 +8,5 @@ services:
     resource: '../../EventSubscriber/'
   Tourze\DoctrineCacheBundle\Strategy\:
     resource: '../../Strategy/'
+
+  Tourze\CacheStrategy\NoCacheStrategy: ~
