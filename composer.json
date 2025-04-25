@@ -18,11 +18,17 @@
     "psr/log": "^3|^2|^1"
   },
   "require-dev": {
-    "phpstan/phpstan": "^2.1"
+    "phpstan/phpstan": "^2.1",
+    "phpunit/phpunit": "^10.0"
   },
   "autoload": {
     "psr-4": {
       "Tourze\\DoctrineCacheBundle\\": "src"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Tourze\\DoctrineCacheBundle\\Tests\\": "tests"
     }
   },
   "scripts": {

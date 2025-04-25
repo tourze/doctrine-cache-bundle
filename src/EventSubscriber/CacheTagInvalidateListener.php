@@ -9,7 +9,7 @@ use Doctrine\ORM\Event\PostRemoveEventArgs;
 use Doctrine\ORM\Event\PostUpdateEventArgs;
 use Doctrine\ORM\Events;
 use Psr\Log\LoggerInterface;
-use Symfony\Contracts\Cache\CacheInterface;
+use Symfony\Contracts\Cache\TagAwareCacheInterface;
 use Tourze\DoctrineHelper\CacheHelper;
 
 /**
@@ -21,7 +21,7 @@ use Tourze\DoctrineHelper\CacheHelper;
 class CacheTagInvalidateListener
 {
     public function __construct(
-        private readonly CacheInterface $cache,
+        private readonly TagAwareCacheInterface $cache,
         private readonly LoggerInterface $logger,
     ) {
     }
