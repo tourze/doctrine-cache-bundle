@@ -13,6 +13,7 @@
     "symfony/cache-contracts": "^3",
     "symfony/framework-bundle": "^6.4",
     "symfony/yaml": "^6.4 || ^7.1",
+    "tourze/backtrace-helper": "~0.0.5",
     "tourze/doctrine-helper": "0.0.*",
     "tourze/cache-strategy": "0.0.*",
     "psr/log": "^3|^2|^1"
