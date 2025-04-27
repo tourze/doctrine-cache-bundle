@@ -31,6 +31,7 @@ class CacheConnection extends Connection
 {
     private bool $openCache = true;
 
+    // @phpstan-ignore-next-line
     public function __construct(
         private readonly Connection $inner,
         private readonly CacheInterface $cache,
