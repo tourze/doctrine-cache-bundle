@@ -8,16 +8,16 @@
     "doctrine/dbal": "^4.0",
     "doctrine/doctrine-bundle": "^2.13",
     "doctrine/orm": "^3.0",
+    "psr/log": "^3|^2|^1",
+    "symfony/cache-contracts": "^3",
     "symfony/config": "^6.4",
     "symfony/dependency-injection": "^6.4",
-    "symfony/http-kernel": "^6.4",
-    "symfony/cache-contracts": "^3",
     "symfony/framework-bundle": "^6.4",
+    "symfony/http-kernel": "^6.4",
     "symfony/yaml": "^6.4 || ^7.1",
     "tourze/backtrace-helper": "~0.0.5",
-    "tourze/doctrine-helper": "0.0.*",
     "tourze/cache-strategy": "0.0.*",
-    "psr/log": "^3|^2|^1"
+    "tourze/doctrine-helper": "0.0.*"
   },
   "require-dev": {
     "phpstan/phpstan": "^2.1",
