@@ -16,8 +16,8 @@ use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Doctrine\DBAL\Statement;
 use Doctrine\DBAL\TransactionIsolationLevel;
 use Psr\Log\LoggerInterface;
-use Symfony\Contracts\Cache\CacheInterface;
 use Symfony\Contracts\Cache\ItemInterface;
+use Symfony\Contracts\Cache\TagAwareCacheInterface;
 use Tourze\CacheStrategy\CacheStrategy;
 use Tourze\DoctrineCacheBundle\Result\ArrayResult;
 
@@ -34,7 +34,7 @@ class CacheConnection extends Connection
     // @phpstan-ignore-next-line
     public function __construct(
         private readonly Connection $inner,
-        private readonly CacheInterface $cache,
+        private readonly TagAwareCacheInterface $cache,
         private readonly LoggerInterface $logger,
         private readonly CacheStrategy $cacheStrategy,
     ) {
@@ -141,7 +141,7 @@ class CacheConnection extends Connection
         try {
             return $this->inner->delete($table, $criteria, $types);
         } finally {
-            $tableTag = static::filterVar($table);
+            $tableTag = self::filterVar($table);
             $tags = [
                 $tableTag,
                 $tableTag . '_' . ($criteria['id'] ?? ''),
@@ -170,7 +170,7 @@ class CacheConnection extends Connection
         try {
             return $this->inner->update($table, $data, $criteria, $types);
         } finally {
-            $tableTag = static::filterVar($table);
+            $tableTag = self::filterVar($table);
             $tags = [
                 $tableTag,
                 $tableTag . '_' . ($criteria['id'] ?? ''),
@@ -184,7 +184,7 @@ class CacheConnection extends Connection
         try {
             return $this->inner->insert($table, $data, $types);
         } finally {
-            $this->cache->invalidateTags([static::filterVar($table)]);
+            $this->cache->invalidateTags([self::filterVar($table)]);
         }
     }
 
@@ -252,7 +252,7 @@ class CacheConnection extends Connection
             fn () => iterator_to_array($this->inner->iterateNumeric($query, $params, $types)),
         );
 
-        return static::generateRowsTraversable($rows);
+        return self::generateRowsTraversable($rows);
     }
 
     public function iterateAssociative(string $query, array $params = [], array $types = []): \Traversable
@@ -264,7 +264,7 @@ class CacheConnection extends Connection
             fn () => iterator_to_array($this->inner->iterateAssociative($query, $params, $types)),
         );
 
-        return static::generateRowsTraversable($rows);
+        return self::generateRowsTraversable($rows);
     }
 
     public function iterateKeyValue(string $query, array $params = [], array $types = []): \Traversable
@@ -276,7 +276,7 @@ class CacheConnection extends Connection
             fn () => iterator_to_array($this->inner->iterateKeyValue($query, $params, $types)),
         );
 
-        return static::generateRowsTraversable($rows);
+        return self::generateRowsTraversable($rows);
     }
 
     public function iterateAssociativeIndexed(string $query, array $params = [], array $types = []): \Traversable
@@ -288,7 +288,7 @@ class CacheConnection extends Connection
             fn () => iterator_to_array($this->inner->iterateAssociativeIndexed($query, $params, $types)),
         );
 
-        return static::generateRowsTraversable($rows);
+        return self::generateRowsTraversable($rows);
     }
 
     public function iterateColumn(string $query, array $params = [], array $types = []): \Traversable
@@ -300,7 +300,7 @@ class CacheConnection extends Connection
             fn () => iterator_to_array($this->inner->iterateColumn($query, $params, $types)),
         );
 
-        return static::generateRowsTraversable($rows);
+        return self::generateRowsTraversable($rows);
     }
 
     public function prepare(string $sql): Statement
@@ -343,7 +343,7 @@ class CacheConnection extends Connection
         try {
             return $this->inner->executeStatement($sql, $params, $types);
         } finally {
-            $this->cache->invalidateTags(static::extractCacheTags($sql, $params));
+            $this->cache->invalidateTags(self::extractCacheTags($sql, $params));
         }
     }
 
@@ -404,7 +404,9 @@ class CacheConnection extends Connection
 
     public function getWrappedConnection()
     {
-        return $this->inner->getWrappedConnection();
+        // getWrappedConnection() was removed in DBAL 4.0
+        // Use getNativeConnection() instead
+        return $this->inner->getNativeConnection();
     }
 
     public function getNativeConnection()
@@ -480,39 +482,39 @@ class CacheConnection extends Connection
     /**
      * 拆分出有效的缓存标签
      */
-    private function extractCacheTags(string $sql, array $params): array
+    private static function extractCacheTags(string $sql, array $params): array
     {
         $result = [];
 
         // 按照doctrine的风格，我们应该可以直接正则匹配出来的
         preg_match_all('@ FROM (.*?) @', $sql, $matches);
         foreach ($matches[1] as $str) {
-            if (static::isRealTable($str)) {
-                $result[] = trim(static::filterVar($str));
+            if (self::isRealTable($str)) {
+                $result[] = trim(self::filterVar($str));
             }
         }
         preg_match_all('@ JOIN (.*?) @', $sql, $matches);
         foreach ($matches[1] as $str) {
-            if (static::isRealTable($str)) {
-                $result[] = trim(static::filterVar($str));
+            if (self::isRealTable($str)) {
+                $result[] = trim(self::filterVar($str));
             }
         }
         preg_match_all('@UPDATE (.*?) @', $sql, $matches);
         foreach ($matches[1] as $str) {
-            if (static::isRealTable($str)) {
-                $result[] = trim(static::filterVar($str));
+            if (self::isRealTable($str)) {
+                $result[] = trim(self::filterVar($str));
             }
         }
         preg_match_all('@INSERT INTO (.*?) @', $sql, $matches);
         foreach ($matches[1] as $str) {
-            if (static::isRealTable($str)) {
-                $result[] = trim(static::filterVar($str));
+            if (self::isRealTable($str)) {
+                $result[] = trim(self::filterVar($str));
             }
         }
         preg_match_all('@DELETE FROM (.*?) @', $sql, $matches);
         foreach ($matches[1] as $str) {
-            if (static::isRealTable($str)) {
-                $result[] = trim(static::filterVar($str));
+            if (self::isRealTable($str)) {
+                $result[] = trim(self::filterVar($str));
             }
         }
 
@@ -534,7 +536,7 @@ class CacheConnection extends Connection
      */
     private function callCache(string $func, string $query, array $params, callable $callback): mixed
     {
-        if (!($_ENV['DOCTRINE_CACHE_TABLE_SWITCH'] ?? true)) {
+        if (!(bool) ($_ENV['DOCTRINE_CACHE_TABLE_SWITCH'] ?? true)) {
             return $callback();
         }
         if (!$this->cacheStrategy->shouldCache($query, $params)) {
