@@ -8,7 +8,7 @@ use Tourze\CacheStrategy\CacheStrategy;
 class CacheStrategyCollector implements CacheStrategy
 {
     public function __construct(
-        #[TaggedIterator(CacheStrategy::SERVICE_TAG)] private readonly iterable $strategies,
+        #[TaggedIterator(tag: CacheStrategy::SERVICE_TAG)] private readonly iterable $strategies,
     )
     {
     }

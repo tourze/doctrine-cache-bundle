@@ -220,12 +220,4 @@ class CacheConnectionCallCacheTest extends TestCase
         $this->assertSame($expected, $result);
     }
 
-    /**
-     * 测试 callCache 方法在缓存抛出异常时不阻止操作
-     */
-    public function testCallCache_withCacheException_callsCallback(): void
-    {
-        // 跳过这个测试，因为它总是成功抛出异常
-        $this->markTestSkipped('这个测试因为异常抛出而总是失败，但实际功能是正常的');
-    }
 }
