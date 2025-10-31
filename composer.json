@@ -18,6 +18,7 @@
     "symfony/doctrine-bridge": "^7.3",
     "symfony/framework-bundle": "^7.3",
     "symfony/http-kernel": "^7.3",
+    "symfony/property-access": "^7.3",
     "symfony/yaml": "^7.3",
     "tourze/backtrace-helper": "1.*",
     "tourze/bundle-dependency": "1.*",
@@ -29,7 +30,7 @@
     "phpstan/phpstan": "^2.1",
     "phpunit/phpunit": "^11.5",
     "tourze/biz-user-bundle": "0.0.*",
-    "tourze/phpunit-symfony-kernel-test": "1.*",
+    "tourze/phpunit-symfony-kernel-test": "1.0.*",
     "tourze/phpunit-symfony-unit-test": "1.*"
   },
   "autoload": {
