@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tourze\DoctrineCacheBundle\EventSubscriber;
 
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
@@ -8,6 +10,7 @@ use Doctrine\ORM\Event\PostPersistEventArgs;
 use Doctrine\ORM\Event\PostRemoveEventArgs;
 use Doctrine\ORM\Event\PostUpdateEventArgs;
 use Doctrine\ORM\Events;
+use Monolog\Attribute\WithMonologChannel;
 use Psr\Log\LoggerInterface;
 use Symfony\Contracts\Cache\TagAwareCacheInterface;
 use Tourze\DoctrineHelper\CacheHelper;
@@ -18,11 +21,12 @@ use Tourze\DoctrineHelper\CacheHelper;
 #[AsDoctrineListener(event: Events::postRemove, priority: -99)]
 #[AsDoctrineListener(event: Events::postPersist, priority: -99)]
 #[AsDoctrineListener(event: Events::postUpdate, priority: -99)]
-class CacheTagInvalidateListener
+#[WithMonologChannel(channel: 'doctrine_cache')]
+readonly class CacheTagInvalidateListener
 {
     public function __construct(
-        private readonly TagAwareCacheInterface $cache,
-        private readonly LoggerInterface $logger,
+        private TagAwareCacheInterface $cache,
+        private LoggerInterface $logger,
     ) {
     }
 

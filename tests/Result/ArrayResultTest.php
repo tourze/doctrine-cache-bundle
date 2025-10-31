@@ -4,25 +4,37 @@ declare(strict_types=1);
 
 namespace Tourze\DoctrineCacheBundle\Tests\Result;
 
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Tourze\DoctrineCacheBundle\Result\ArrayResult;
 
-class ArrayResultTest extends TestCase
+/**
+ * @internal
+ */
+#[CoversClass(ArrayResult::class)]
+final class ArrayResultTest extends TestCase
 {
+    /**
+     * @var array<array{id: int, name: string}>
+     */
     private array $testData;
+
     private ArrayResult $arrayResult;
 
     protected function setUp(): void
     {
+        parent::setUp();
+
         $this->testData = [
             ['id' => 1, 'name' => 'test1'],
             ['id' => 2, 'name' => 'test2'],
             ['id' => 3, 'name' => 'test3'],
         ];
+
         $this->arrayResult = new ArrayResult($this->testData);
     }
 
-    public function testFetchNumeric_returnsFirstRowAsNumericArray(): void
+    public function testFetchNumericReturnsFirstRowAsNumericArray(): void
     {
         $expected = [1, 'test1'];
         $result = $this->arrayResult->fetchNumeric();
@@ -30,7 +42,7 @@ class ArrayResultTest extends TestCase
         $this->assertSame($expected, $result);
     }
 
-    public function testFetchNumeric_returnsFalseWhenNoMoreRows(): void
+    public function testFetchNumericReturnsFalseWhenNoMoreRows(): void
     {
         // 取出所有行
         $this->arrayResult->fetchNumeric();
@@ -43,7 +55,7 @@ class ArrayResultTest extends TestCase
         $this->assertFalse($result);
     }
 
-    public function testFetchAssociative_returnsFirstRowAsAssociativeArray(): void
+    public function testFetchAssociativeReturnsFirstRowAsAssociativeArray(): void
     {
         $expected = ['id' => 1, 'name' => 'test1'];
         $result = $this->arrayResult->fetchAssociative();
@@ -51,7 +63,7 @@ class ArrayResultTest extends TestCase
         $this->assertSame($expected, $result);
     }
 
-    public function testFetchAssociative_returnsFalseWhenNoMoreRows(): void
+    public function testFetchAssociativeReturnsFalseWhenNoMoreRows(): void
     {
         // 取出所有行
         $this->arrayResult->fetchAssociative();
@@ -64,7 +76,7 @@ class ArrayResultTest extends TestCase
         $this->assertFalse($result);
     }
 
-    public function testFetchOne_returnsFirstColumnOfFirstRow(): void
+    public function testFetchOneReturnsFirstColumnOfFirstRow(): void
     {
         $expected = 1; // 第一行的第一个元素
         $result = $this->arrayResult->fetchOne();
@@ -72,7 +84,7 @@ class ArrayResultTest extends TestCase
         $this->assertSame($expected, $result);
     }
 
-    public function testFetchOne_returnsFalseWhenNoMoreRows(): void
+    public function testFetchOneReturnsFalseWhenNoMoreRows(): void
     {
         // 取出所有行
         $this->arrayResult->fetchOne();
@@ -85,7 +97,7 @@ class ArrayResultTest extends TestCase
         $this->assertFalse($result);
     }
 
-    public function testFetchAllNumeric_returnsAllRowsAsNumericArrays(): void
+    public function testFetchAllNumericReturnsAllRowsAsNumericArrays(): void
     {
         $expected = [
             [1, 'test1'],
@@ -97,14 +109,14 @@ class ArrayResultTest extends TestCase
         $this->assertSame($expected, $result);
     }
 
-    public function testFetchAllAssociative_returnsAllRowsAsAssociativeArrays(): void
+    public function testFetchAllAssociativeReturnsAllRowsAsAssociativeArrays(): void
     {
         $result = $this->arrayResult->fetchAllAssociative();
 
         $this->assertSame($this->testData, $result);
     }
 
-    public function testFetchFirstColumn_returnsFirstColumnOfAllRows(): void
+    public function testFetchFirstColumnReturnsFirstColumnOfAllRows(): void
     {
         $expected = [1, 2, 3];
         $result = $this->arrayResult->fetchFirstColumn();
@@ -112,23 +124,23 @@ class ArrayResultTest extends TestCase
         $this->assertSame($expected, $result);
     }
 
-    public function testRowCount_returnsNumberOfRows(): void
+    public function testRowCountReturnsNumberOfRows(): void
     {
         $this->assertSame(3, $this->arrayResult->rowCount());
     }
 
-    public function testColumnCount_returnsNumberOfColumnsInFirstRow(): void
+    public function testColumnCountReturnsNumberOfColumnsInFirstRow(): void
     {
         $this->assertSame(2, $this->arrayResult->columnCount());
     }
 
-    public function testColumnCount_returnsZeroForEmptyData(): void
+    public function testColumnCountReturnsZeroForEmptyData(): void
     {
         $emptyResult = new ArrayResult([]);
         $this->assertSame(0, $emptyResult->columnCount());
     }
 
-    public function testFree_resetsCurrentRowIndex(): void
+    public function testFreeResetsCurrentRowIndex(): void
     {
         // 取出一行数据
         $this->arrayResult->fetchAssociative();

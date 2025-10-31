@@ -1,7 +1,15 @@
 # Doctrine 缓存组件
 
-[![最新版本](https://img.shields.io/packagist/v/tourze/doctrine-cache-bundle.svg?style=flat-square)](https://packagist.org/packages/tourze/doctrine-cache-bundle)
-[![开源协议](https://img.shields.io/github/license/tourze/php-monorepo.svg?style=flat-square)](https://github.com/tourze/php-monorepo/blob/main/packages/doctrine-cache-bundle/LICENSE)
+[![最新版本](https://img.shields.io/packagist/v/tourze/doctrine-cache-bundle.svg?style=flat-square)]
+(https://packagist.org/packages/tourze/doctrine-cache-bundle)
+[![PHP 版本](https://img.shields.io/packagist/php-v/tourze/doctrine-cache-bundle.svg?style=flat-square)]
+(https://packagist.org/packages/tourze/doctrine-cache-bundle)
+[![开源协议](https://img.shields.io/github/license/tourze/php-monorepo.svg?style=flat-square)]
+(https://github.com/tourze/php-monorepo/blob/main/packages/doctrine-cache-bundle/LICENSE)
+[![构建状态](https://img.shields.io/github/actions/workflow/status/tourze/php-monorepo/ci.yml?style=flat-square)]
+(https://github.com/tourze/php-monorepo/actions)
+[![Coverage](https://img.shields.io/codecov/c/github/tourze/php-monorepo?style=flat-square)]
+(https://codecov.io/gh/tourze/php-monorepo)
 
 [English](README.md) | [中文](README.zh-CN.md)
 
@@ -15,17 +23,17 @@
 - 与 Symfony 和 Doctrine 无缝集成
 - 兼容 PSR-6 缓存实现
 
+## 系统要求
+
+- PHP 8.1+
+- Symfony 6.4+
+- Doctrine ORM 2.20+ 或 3.0+
+
 ## 安装方法
 
 ```bash
 composer require tourze/doctrine-cache-bundle
 ```
-
-### 系统要求
-
-- PHP 8.1+
-- Symfony 6.4+
-- Doctrine ORM 2.20+ 或 3.0+
 
 ## 快速开始
 
@@ -91,6 +99,10 @@ class PostController extends AbstractController
 
 基本功能不需要特定配置。组件会自动注册所需的服务。
 
+## 高级用法
+
+### 自定义缓存策略
+
 如果你想实现自定义缓存策略，可以创建自己的策略类：
 
 ```php
@@ -118,6 +130,19 @@ services:
     App\Cache\Strategy\CustomCacheStrategy:
         tags: ['doctrine.cache.entity_cache_strategy']
 ```
+
+### 环境变量
+
+你可以通过环境变量控制缓存行为：
+
+- `DOCTRINE_CACHE_TABLE_SWITCH`: 启用/禁用缓存 (默认: true)
+- `DOCTRINE_GLOBAL_CACHE_TABLE_DURATION`: 默认缓存持续时间（秒）(默认: 86400)
+- `DOCTRINE_CACHE_TABLE_DURATION_{table_name}`: 特定表的缓存持续时间
+
+### 缓存标签命名
+
+组件会根据从 SQL 查询中提取的表名自动生成缓存标签。常见的 SQL 操作（SELECT、INSERT、
+UPDATE、DELETE）会被自动检测，并生成相应的缓存标签。
 
 ## 最佳实践
 

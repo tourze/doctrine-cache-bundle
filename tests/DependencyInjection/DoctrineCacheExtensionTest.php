@@ -1,34 +1,22 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tourze\DoctrineCacheBundle\Tests\DependencyInjection;
 
-use PHPUnit\Framework\TestCase;
-use Symfony\Component\DependencyInjection\ContainerBuilder;
+use PHPUnit\Framework\Attributes\CoversClass;
 use Tourze\DoctrineCacheBundle\DependencyInjection\DoctrineCacheExtension;
-use Tourze\DoctrineCacheBundle\EventSubscriber\CacheTagInvalidateListener;
-use Tourze\DoctrineCacheBundle\Strategy\CacheStrategyCollector;
+use Tourze\PHPUnitSymfonyUnitTest\AbstractDependencyInjectionExtensionTestCase;
 
-class DoctrineCacheExtensionTest extends TestCase
+/**
+ * @internal
+ */
+#[CoversClass(DoctrineCacheExtension::class)]
+final class DoctrineCacheExtensionTest extends AbstractDependencyInjectionExtensionTestCase
 {
-    public function testLoad(): void
+    protected function provideServiceDirectories(): iterable
     {
-        $container = new ContainerBuilder();
-        $extension = new DoctrineCacheExtension();
-
-        // 模拟服务加载
-        $extension->load([], $container);
-
-        // 验证关键服务是否已注册
-        $this->assertTrue($container->has(CacheTagInvalidateListener::class));
-        $this->assertTrue($container->has(CacheStrategyCollector::class));
-
-        // 验证服务配置
-        $tagInvalidateListener = $container->getDefinition(CacheTagInvalidateListener::class);
-        $this->assertTrue($tagInvalidateListener->isAutowired());
-        $this->assertTrue($tagInvalidateListener->isAutoconfigured());
-
-        $strategyCollector = $container->getDefinition(CacheStrategyCollector::class);
-        $this->assertTrue($strategyCollector->isAutowired());
-        $this->assertTrue($strategyCollector->isAutoconfigured());
+        yield from parent::provideServiceDirectories();
+        yield 'Strategy';
     }
 }

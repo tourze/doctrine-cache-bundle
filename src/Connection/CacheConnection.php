@@ -1,13 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tourze\DoctrineCacheBundle\Connection;
 
-use Closure;
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Cache\QueryCacheProfile;
 use Doctrine\DBAL\Configuration;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Driver;
 use Doctrine\DBAL\Driver\Connection as DriverConnection;
+use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Query\Expression\ExpressionBuilder;
 use Doctrine\DBAL\Query\QueryBuilder;
@@ -15,6 +18,7 @@ use Doctrine\DBAL\Result;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Doctrine\DBAL\Statement;
 use Doctrine\DBAL\TransactionIsolationLevel;
+use Doctrine\DBAL\Types\Type;
 use Psr\Log\LoggerInterface;
 use Symfony\Contracts\Cache\ItemInterface;
 use Symfony\Contracts\Cache\TagAwareCacheInterface;
@@ -91,7 +95,7 @@ class CacheConnection extends Connection
         return $this->inner->isAutoCommit();
     }
 
-    public function setAutoCommit($autoCommit): void
+    public function setAutoCommit(bool $autoCommit): void
     {
         $this->inner->setAutoCommit($autoCommit);
     }
@@ -179,7 +183,7 @@ class CacheConnection extends Connection
         }
     }
 
-    public function insert($table, array $data, array $types = []): int|string
+    public function insert(string $table, array $data, array $types = []): int|string
     {
         try {
             return $this->inner->insert($table, $data, $types);
@@ -333,12 +337,12 @@ class CacheConnection extends Connection
         return new Result(new ArrayResult($data), $this);
     }
 
-    public function executeCacheQuery($sql, $params, $types, QueryCacheProfile $qcp): Result
+    public function executeCacheQuery(string $sql, array $params, array $types, QueryCacheProfile $qcp): Result
     {
         return $this->inner->executeCacheQuery($sql, $params, $types, $qcp);
     }
 
-    public function executeStatement($sql, array $params = [], array $types = []): int|string
+    public function executeStatement(string $sql, array $params = [], array $types = []): int|string
     {
         try {
             return $this->inner->executeStatement($sql, $params, $types);
@@ -357,12 +361,12 @@ class CacheConnection extends Connection
         return $this->inner->lastInsertId();
     }
 
-    public function transactional(Closure $func): mixed
+    public function transactional(\Closure $func): mixed
     {
         return $this->inner->transactional($func);
     }
 
-    public function setNestTransactionsWithSavepoints($nestTransactionsWithSavepoints): void
+    public function setNestTransactionsWithSavepoints(bool $nestTransactionsWithSavepoints): void
     {
         $this->inner->setNestTransactionsWithSavepoints($nestTransactionsWithSavepoints);
     }
@@ -387,33 +391,40 @@ class CacheConnection extends Connection
         $this->inner->rollBack();
     }
 
-    public function createSavepoint($savepoint): void
+    public function createSavepoint(string $savepoint): void
     {
         $this->inner->createSavepoint($savepoint);
     }
 
-    public function releaseSavepoint($savepoint): void
+    public function releaseSavepoint(string $savepoint): void
     {
         $this->inner->releaseSavepoint($savepoint);
     }
 
-    public function rollbackSavepoint($savepoint): void
+    public function rollbackSavepoint(string $savepoint): void
     {
         $this->inner->rollbackSavepoint($savepoint);
     }
 
-    public function getWrappedConnection()
+    public function getWrappedConnection(): object
     {
         // getWrappedConnection() was removed in DBAL 4.0
         // Use getNativeConnection() instead
-        return $this->inner->getNativeConnection();
+        $connection = $this->inner->getNativeConnection();
+
+        return is_object($connection) ? $connection : (object) [];
     }
 
-    public function getNativeConnection()
+    public function getNativeConnection(): object
     {
-        return $this->inner->getNativeConnection();
+        $connection = $this->inner->getNativeConnection();
+
+        return is_object($connection) ? $connection : (object) [];
     }
 
+    /**
+     * @return AbstractSchemaManager<AbstractPlatform>
+     */
     public function createSchemaManager(): AbstractSchemaManager
     {
         return $this->inner->createSchemaManager();
@@ -444,9 +455,13 @@ class CacheConnection extends Connection
         return $this->inner->createQueryBuilder();
     }
 
+    /**
+     * @param array<mixed> $params
+     * @param array<int<0, max>|string, ArrayParameterType|ParameterType|Type|string> $types
+     */
     public function executeUpdate(string $sql, array $params = [], array $types = []): int
     {
-        return $this->executeStatement($sql, $params, $types);
+        return (int) $this->executeStatement($sql, $params, $types);
     }
 
     public function query(string $sql): Result
@@ -456,11 +471,14 @@ class CacheConnection extends Connection
 
     public function exec(string $sql): int
     {
-        return $this->executeStatement($sql);
+        return (int) $this->executeStatement($sql);
     }
 
     /**
      * 生成缓存KEY
+     */
+    /**
+     * @param array<mixed> $params
      */
     private function buildCacheKey(string $func, string $sql, array $params): string
     {
@@ -482,45 +500,46 @@ class CacheConnection extends Connection
     /**
      * 拆分出有效的缓存标签
      */
+    /**
+     * @param array<mixed> $params
+     * @return array<string>
+     */
     private static function extractCacheTags(string $sql, array $params): array
     {
+        $patterns = [
+            '@ FROM (.*?) @',
+            '@ JOIN (.*?) @',
+            '@UPDATE (.*?) @',
+            '@INSERT INTO (.*?) @',
+            '@DELETE FROM (.*?) @',
+        ];
+
         $result = [];
+        foreach ($patterns as $pattern) {
+            $result = array_merge($result, self::extractTablesFromPattern($sql, $pattern));
+        }
 
-        // 按照doctrine的风格，我们应该可以直接正则匹配出来的
-        preg_match_all('@ FROM (.*?) @', $sql, $matches);
+        return array_values(array_unique($result));
+    }
+
+    /**
+     * 从指定模式中提取表名
+     */
+    /**
+     * @return array<string>
+     */
+    private static function extractTablesFromPattern(string $sql, string $pattern): array
+    {
+        $tables = [];
+        preg_match_all($pattern, $sql, $matches);
+
         foreach ($matches[1] as $str) {
             if (self::isRealTable($str)) {
-                $result[] = trim(self::filterVar($str));
-            }
-        }
-        preg_match_all('@ JOIN (.*?) @', $sql, $matches);
-        foreach ($matches[1] as $str) {
-            if (self::isRealTable($str)) {
-                $result[] = trim(self::filterVar($str));
-            }
-        }
-        preg_match_all('@UPDATE (.*?) @', $sql, $matches);
-        foreach ($matches[1] as $str) {
-            if (self::isRealTable($str)) {
-                $result[] = trim(self::filterVar($str));
-            }
-        }
-        preg_match_all('@INSERT INTO (.*?) @', $sql, $matches);
-        foreach ($matches[1] as $str) {
-            if (self::isRealTable($str)) {
-                $result[] = trim(self::filterVar($str));
-            }
-        }
-        preg_match_all('@DELETE FROM (.*?) @', $sql, $matches);
-        foreach ($matches[1] as $str) {
-            if (self::isRealTable($str)) {
-                $result[] = trim(self::filterVar($str));
+                $tables[] = trim(self::filterVar($str));
             }
         }
 
-        $result = array_unique($result);
-
-        return array_values($result);
+        return $tables;
     }
 
     /**
@@ -534,63 +553,120 @@ class CacheConnection extends Connection
     /**
      * 执行，并尝试读取缓存
      */
+    /**
+     * @param array<mixed> $params
+     */
     private function callCache(string $func, string $query, array $params, callable $callback): mixed
     {
-        if (!(bool) ($_ENV['DOCTRINE_CACHE_TABLE_SWITCH'] ?? true)) {
-            return $callback();
-        }
-        if (!$this->cacheStrategy->shouldCache($query, $params)) {
+        if (!$this->shouldUseCache($query, $params)) {
             return $callback();
         }
 
         $cacheKey = $this->buildCacheKey($func, $query, $params);
-        $tags = $this->extractCacheTags($query, $params);
+        $tags = self::extractCacheTags($query, $params);
 
         if (!$this->isOpenCache()) {
-            try {
-                $this->cache->delete($cacheKey);
-                // $this->cache->invalidateTags($tags); // 这样子会不会缓存清除过多了？
-            } catch (\Throwable $exception) {
-                $this->logger->warning('数据库连接主动清除缓存失败', ['exception' => $exception]);
-            }
+            $this->handleCacheDisabled($cacheKey);
 
             return $callback();
         }
 
         return $this->cache->get($cacheKey, function (ItemInterface $item) use ($func, $query, $params, $tags, $callback) {
-            // 标签
-            $item->tag($tags);
+            $this->configureCacheItem($item, $tags);
 
-            // 过期时间
-            $duration = null;
-            foreach ($tags as $tag) {
-                if (null !== $tag) {
-                    break;
-                }
-                $duration = $_ENV["DOCTRINE_CACHE_TABLE_DURATION_{$tag}"] ?? null;
-            }
-            if (null === $duration) {
-                $duration = $_ENV['DOCTRINE_GLOBAL_CACHE_TABLE_DURATION'] ?? 60 * 60 * 24; // 默认一天
-            }
-            $item->expiresAfter($duration);
-
-            try {
-                return $callback();
-            } finally {
-                $this->logger->debug('写入数据库缓存', [
-                    'func' => $func,
-                    'tags' => $tags,
-                    'duration' => $duration,
-                    'query' => $query,
-                    'params' => $params,
-                ]);
-            }
+            return $this->executeWithLogging($func, $query, $params, $tags, $callback);
         });
     }
 
+    /**
+     * 检查是否应该使用缓存
+     */
+    /**
+     * @param array<mixed> $params
+     */
+    private function shouldUseCache(string $query, array $params): bool
+    {
+        if (!(bool) ($_ENV['DOCTRINE_CACHE_TABLE_SWITCH'] ?? true)) {
+            return false;
+        }
+
+        return $this->cacheStrategy->shouldCache($query, $params);
+    }
+
+    /**
+     * 处理缓存被禁用的情况
+     */
+    private function handleCacheDisabled(string $cacheKey): void
+    {
+        try {
+            $this->cache->delete($cacheKey);
+        } catch (\Throwable $exception) {
+            $this->logger->warning('数据库连接主动清除缓存失败', ['exception' => $exception]);
+        }
+    }
+
+    /**
+     * 配置缓存项
+     */
+    /**
+     * @param array<string> $tags
+     */
+    private function configureCacheItem(ItemInterface $item, array $tags): void
+    {
+        $item->tag($tags);
+        $duration = $this->calculateCacheDuration($tags);
+        $item->expiresAfter($duration);
+    }
+
+    /**
+     * 计算缓存持续时间
+     */
+    /**
+     * @param array<string> $tags
+     */
+    private function calculateCacheDuration(array $tags): int
+    {
+        foreach ($tags as $tag) {
+            if (null !== $tag) {
+                $duration = $_ENV["DOCTRINE_CACHE_TABLE_DURATION_{$tag}"] ?? null;
+                if (null !== $duration) {
+                    return (int) $duration;
+                }
+            }
+        }
+
+        return (int) ($_ENV['DOCTRINE_GLOBAL_CACHE_TABLE_DURATION'] ?? 60 * 60 * 24);
+    }
+
+    /**
+     * 执行回调并记录日志
+     */
+    /**
+     * @param array<mixed> $params
+     * @param array<string> $tags
+     */
+    private function executeWithLogging(string $func, string $query, array $params, array $tags, callable $callback): mixed
+    {
+        try {
+            return $callback();
+        } finally {
+            $this->logger->debug('写入数据库缓存', [
+                'func' => $func,
+                'tags' => $tags,
+                'duration' => $this->calculateCacheDuration($tags),
+                'query' => $query,
+                'params' => $params,
+            ]);
+        }
+    }
+
+    /**
+     * @param array<mixed> $rows
+     * @return \Traversable<mixed>
+     */
     private static function generateRowsTraversable(array $rows): \Traversable
     {
-        while (!empty($rows)) {
+        while ([] !== $rows) {
             $row = array_shift($rows);
             yield $row;
         }

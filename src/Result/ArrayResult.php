@@ -8,13 +8,13 @@ use Doctrine\DBAL\Driver\Result;
 
 class ArrayResult implements Result
 {
-    private array $data;
-
     private int $currentRow = 0;
 
-    public function __construct(array $data)
+    /**
+     * @param array<array<string, mixed>> $data
+     */
+    public function __construct(private readonly array $data)
     {
-        $this->data = $data;
     }
 
     public function fetchNumeric(): array|false
@@ -49,24 +49,33 @@ class ArrayResult implements Result
         return reset($row); // Get the first element of the array
     }
 
+    /**
+     * @return list<list<mixed>>
+     */
     public function fetchAllNumeric(): array
     {
         // Return all rows as numeric arrays
-        return array_map('array_values', $this->data);
+        return array_values(array_map('array_values', $this->data));
     }
 
+    /**
+     * @return list<array<string, mixed>>
+     */
     public function fetchAllAssociative(): array
     {
         // Return all rows as associative arrays
-        return $this->data;
+        return array_values($this->data);
     }
 
+    /**
+     * @return list<mixed>
+     */
     public function fetchFirstColumn(): array
     {
         // Return the first column of each row
-        return array_map(function ($row) {
+        return array_values(array_map(function ($row) {
             return reset($row);
-        }, $this->data);
+        }, $this->data));
     }
 
     public function rowCount(): int
@@ -78,7 +87,7 @@ class ArrayResult implements Result
     public function columnCount(): int
     {
         // Return the number of columns in the first row, if available
-        if (empty($this->data)) {
+        if ([] === $this->data) {
             return 0;
         }
 

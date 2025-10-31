@@ -1,11 +1,20 @@
 # Doctrine Cache Bundle
 
-[![Latest Version](https://img.shields.io/packagist/v/tourze/doctrine-cache-bundle.svg?style=flat-square)](https://packagist.org/packages/tourze/doctrine-cache-bundle)
-[![License](https://img.shields.io/github/license/tourze/php-monorepo.svg?style=flat-square)](https://github.com/tourze/php-monorepo/blob/main/packages/doctrine-cache-bundle/LICENSE)
+[![Latest Version](https://img.shields.io/packagist/v/tourze/doctrine-cache-bundle.svg?style=flat-square)]
+(https://packagist.org/packages/tourze/doctrine-cache-bundle)
+[![PHP Version](https://img.shields.io/packagist/php-v/tourze/doctrine-cache-bundle.svg?style=flat-square)]
+(https://packagist.org/packages/tourze/doctrine-cache-bundle)
+[![License](https://img.shields.io/github/license/tourze/php-monorepo.svg?style=flat-square)]
+(https://github.com/tourze/php-monorepo/blob/main/packages/doctrine-cache-bundle/LICENSE)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/tourze/php-monorepo/ci.yml?style=flat-square)]
+(https://github.com/tourze/php-monorepo/actions)
+[![Coverage](https://img.shields.io/codecov/c/github/tourze/php-monorepo?style=flat-square)]
+(https://codecov.io/gh/tourze/php-monorepo)
 
 [English](README.md) | [中文](README.zh-CN.md)
 
-A Symfony bundle that provides caching capabilities for Doctrine ORM, with automatic cache invalidation based on entity changes.
+A Symfony bundle that provides caching capabilities for Doctrine ORM, with automatic cache
+invalidation based on entity changes.
 
 ## Features
 
@@ -15,17 +24,17 @@ A Symfony bundle that provides caching capabilities for Doctrine ORM, with autom
 - Seamless integration with Symfony and Doctrine
 - Compatible with PSR-6 cache implementations
 
+## Requirements
+
+- PHP 8.1+
+- Symfony 6.4+
+- Doctrine ORM 2.20+ or 3.0+
+
 ## Installation
 
 ```bash
 composer require tourze/doctrine-cache-bundle
 ```
-
-### Requirements
-
-- PHP 8.1+
-- Symfony 6.4+
-- Doctrine ORM 2.20+ or 3.0+
 
 ## Quick Start
 
@@ -42,7 +51,8 @@ return [
 
 ### 2. Basic usage example:
 
-The bundle automatically listens to Doctrine entity lifecycle events and invalidates related cache tags when entities are changed:
+The bundle automatically listens to Doctrine entity lifecycle events and invalidates
+related cache tags when entities are changed:
 
 ```php
 <?php
@@ -89,7 +99,12 @@ When a Post entity is updated, the bundle will automatically invalidate the cach
 
 ## Configuration
 
-No specific configuration is needed for basic functionality. The bundle automatically registers the required services.
+No specific configuration is needed for basic functionality. The bundle automatically 
+registers the required services.
+
+## Advanced Usage
+
+### Custom Cache Strategies
 
 If you want to implement custom cache strategies, you can create your own strategy class:
 
@@ -118,6 +133,20 @@ services:
     App\Cache\Strategy\CustomCacheStrategy:
         tags: ['doctrine.cache.entity_cache_strategy']
 ```
+
+### Environment Variables
+
+You can control cache behavior using environment variables:
+
+- `DOCTRINE_CACHE_TABLE_SWITCH`: Enable/disable caching (default: true)
+- `DOCTRINE_GLOBAL_CACHE_TABLE_DURATION`: Default cache duration in seconds (default: 86400)
+- `DOCTRINE_CACHE_TABLE_DURATION_{table_name}`: Cache duration for specific tables
+
+### Cache Tag Naming
+
+The bundle automatically generates cache tags based on table names extracted from SQL queries.
+Common SQL operations (SELECT, INSERT, UPDATE, DELETE) are automatically detected and
+appropriate cache tags are generated.
 
 ## Best Practices
 

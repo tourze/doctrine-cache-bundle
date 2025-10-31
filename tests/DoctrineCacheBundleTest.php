@@ -1,17 +1,19 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tourze\DoctrineCacheBundle\Tests;
 
-use PHPUnit\Framework\TestCase;
-use Symfony\Component\HttpKernel\Bundle\Bundle;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Tourze\DoctrineCacheBundle\DoctrineCacheBundle;
+use Tourze\PHPUnitSymfonyKernelTest\AbstractBundleTestCase;
 
-class DoctrineCacheBundleTest extends TestCase
+/**
+ * @internal
+ */
+#[CoversClass(DoctrineCacheBundle::class)]
+#[RunTestsInSeparateProcesses]
+final class DoctrineCacheBundleTest extends AbstractBundleTestCase
 {
-    public function testInstanceOfBundle(): void
-    {
-        $bundle = new DoctrineCacheBundle();
-
-        $this->assertInstanceOf(Bundle::class, $bundle);
-    }
 }
