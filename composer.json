@@ -22,7 +22,7 @@
     "symfony/yaml": "^7.3",
     "tourze/backtrace-helper": "1.*",
     "tourze/bundle-dependency": "1.*",
-    "tourze/cache-strategy": "0.0.*",
+    "tourze/cache-strategy": "1.0.*",
     "tourze/doctrine-helper": "1.0.*",
     "tourze/symfony-dependency-service-loader": "1.*"
   },
