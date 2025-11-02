@@ -148,7 +148,7 @@ class CacheConnection extends Connection
             $tableTag = self::filterVar($table);
             $tags = [
                 $tableTag,
-                $tableTag . '_' . ($criteria['id'] ?? ''),
+                $tableTag . '_' . (is_scalar($criteria['id'] ?? '') ? (string) ($criteria['id'] ?? '') : ''),
             ];
             $this->cache->invalidateTags($tags);
         }
@@ -177,7 +177,7 @@ class CacheConnection extends Connection
             $tableTag = self::filterVar($table);
             $tags = [
                 $tableTag,
-                $tableTag . '_' . ($criteria['id'] ?? ''),
+                $tableTag . '_' . (is_scalar($criteria['id'] ?? '') ? (string) ($criteria['id'] ?? '') : ''),
             ];
             $this->cache->invalidateTags($tags);
         }
@@ -256,6 +256,8 @@ class CacheConnection extends Connection
             fn () => iterator_to_array($this->inner->iterateNumeric($query, $params, $types)),
         );
 
+        assert(is_array($rows));
+
         return self::generateRowsTraversable($rows);
     }
 
@@ -267,6 +269,8 @@ class CacheConnection extends Connection
             [$params, $types],
             fn () => iterator_to_array($this->inner->iterateAssociative($query, $params, $types)),
         );
+
+        assert(is_array($rows));
 
         return self::generateRowsTraversable($rows);
     }
@@ -280,6 +284,8 @@ class CacheConnection extends Connection
             fn () => iterator_to_array($this->inner->iterateKeyValue($query, $params, $types)),
         );
 
+        assert(is_array($rows));
+
         return self::generateRowsTraversable($rows);
     }
 
@@ -292,6 +298,8 @@ class CacheConnection extends Connection
             fn () => iterator_to_array($this->inner->iterateAssociativeIndexed($query, $params, $types)),
         );
 
+        assert(is_array($rows));
+
         return self::generateRowsTraversable($rows);
     }
 
@@ -303,6 +311,8 @@ class CacheConnection extends Connection
             [$params, $types],
             fn () => iterator_to_array($this->inner->iterateColumn($query, $params, $types)),
         );
+
+        assert(is_array($rows));
 
         return self::generateRowsTraversable($rows);
     }
@@ -461,7 +471,8 @@ class CacheConnection extends Connection
      */
     public function executeUpdate(string $sql, array $params = [], array $types = []): int
     {
-        return (int) $this->executeStatement($sql, $params, $types);
+        $result = $this->executeStatement($sql, $params, $types);
+        return is_int($result) ? $result : (int) $result;
     }
 
     public function query(string $sql): Result
@@ -471,7 +482,8 @@ class CacheConnection extends Connection
 
     public function exec(string $sql): int
     {
-        return (int) $this->executeStatement($sql);
+        $result = $this->executeStatement($sql);
+        return is_int($result) ? $result : (int) $result;
     }
 
     /**
@@ -556,10 +568,21 @@ class CacheConnection extends Connection
     /**
      * @param array<mixed> $params
      */
+    /**
+     * 通用缓存调用器（使用 PHPDoc 泛型让返回类型与回调一致）
+     *
+     * @template T
+     * @param array<mixed> $params
+     * @param callable():T $callback 回调需返回 T
+     * @return T 返回与回调一致的类型 T
+     */
     private function callCache(string $func, string $query, array $params, callable $callback): mixed
     {
         if (!$this->shouldUseCache($query, $params)) {
-            return $callback();
+            // 直接返回回调结果（T）
+            /** @var T $result */
+            $result = $callback();
+            return $result;
         }
 
         $cacheKey = $this->buildCacheKey($func, $query, $params);
@@ -568,14 +591,21 @@ class CacheConnection extends Connection
         if (!$this->isOpenCache()) {
             $this->handleCacheDisabled($cacheKey);
 
-            return $callback();
+            /** @var T $result */
+            $result = $callback();
+            return $result;
         }
 
-        return $this->cache->get($cacheKey, function (ItemInterface $item) use ($func, $query, $params, $tags, $callback) {
+        /** @var T $cached */
+        $cached = $this->cache->get($cacheKey, function (ItemInterface $item) use ($func, $query, $params, $tags, $callback) {
             $this->configureCacheItem($item, $tags);
 
-            return $this->executeWithLogging($func, $query, $params, $tags, $callback);
+            /** @var T $computed */
+            $computed = $this->executeWithLogging($func, $query, $params, $tags, $callback);
+            return $computed;
         });
+
+        return $cached;
     }
 
     /**
@@ -626,16 +656,47 @@ class CacheConnection extends Connection
      */
     private function calculateCacheDuration(array $tags): int
     {
+        $tagDuration = $this->findTagSpecificDuration($tags);
+        if ($tagDuration !== null) {
+            return $tagDuration;
+        }
+
+        return $this->getGlobalCacheDuration();
+    }
+
+    /**
+     * @param array<string> $tags
+     */
+    private function findTagSpecificDuration(array $tags): ?int
+    {
         foreach ($tags as $tag) {
-            if (null !== $tag) {
-                $duration = $_ENV["DOCTRINE_CACHE_TABLE_DURATION_{$tag}"] ?? null;
-                if (null !== $duration) {
-                    return (int) $duration;
-                }
+            if ($tag === null) {
+                continue;
+            }
+
+            $duration = $this->getTagDurationFromEnv($tag);
+            if ($duration !== null) {
+                return $duration;
             }
         }
 
-        return (int) ($_ENV['DOCTRINE_GLOBAL_CACHE_TABLE_DURATION'] ?? 60 * 60 * 24);
+        return null;
+    }
+
+    private function getTagDurationFromEnv(string $tag): ?int
+    {
+        $duration = $_ENV["DOCTRINE_CACHE_TABLE_DURATION_{$tag}"] ?? null;
+        if ($duration === null) {
+            return null;
+        }
+
+        return is_numeric($duration) ? (int) $duration : 0;
+    }
+
+    private function getGlobalCacheDuration(): int
+    {
+        $globalDuration = $_ENV['DOCTRINE_GLOBAL_CACHE_TABLE_DURATION'] ?? 60 * 60 * 24;
+        return is_numeric($globalDuration) ? (int) $globalDuration : 60 * 60 * 24;
     }
 
     /**
@@ -663,6 +724,11 @@ class CacheConnection extends Connection
     /**
      * @param array<mixed> $rows
      * @return \Traversable<mixed>
+     */
+    /**
+     * @template T
+     * @param array<T> $rows
+     * @return \Traversable<int, T>
      */
     private static function generateRowsTraversable(array $rows): \Traversable
     {
