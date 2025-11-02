@@ -472,6 +472,7 @@ class CacheConnection extends Connection
     public function executeUpdate(string $sql, array $params = [], array $types = []): int
     {
         $result = $this->executeStatement($sql, $params, $types);
+
         return is_int($result) ? $result : (int) $result;
     }
 
@@ -483,6 +484,7 @@ class CacheConnection extends Connection
     public function exec(string $sql): int
     {
         $result = $this->executeStatement($sql);
+
         return is_int($result) ? $result : (int) $result;
     }
 
@@ -582,6 +584,7 @@ class CacheConnection extends Connection
             // 直接返回回调结果（T）
             /** @var T $result */
             $result = $callback();
+
             return $result;
         }
 
@@ -593,6 +596,7 @@ class CacheConnection extends Connection
 
             /** @var T $result */
             $result = $callback();
+
             return $result;
         }
 
@@ -602,6 +606,7 @@ class CacheConnection extends Connection
 
             /** @var T $computed */
             $computed = $this->executeWithLogging($func, $query, $params, $tags, $callback);
+
             return $computed;
         });
 
@@ -657,7 +662,7 @@ class CacheConnection extends Connection
     private function calculateCacheDuration(array $tags): int
     {
         $tagDuration = $this->findTagSpecificDuration($tags);
-        if ($tagDuration !== null) {
+        if (null !== $tagDuration) {
             return $tagDuration;
         }
 
@@ -670,12 +675,12 @@ class CacheConnection extends Connection
     private function findTagSpecificDuration(array $tags): ?int
     {
         foreach ($tags as $tag) {
-            if ($tag === null) {
+            if (null === $tag) {
                 continue;
             }
 
             $duration = $this->getTagDurationFromEnv($tag);
-            if ($duration !== null) {
+            if (null !== $duration) {
                 return $duration;
             }
         }
@@ -686,7 +691,7 @@ class CacheConnection extends Connection
     private function getTagDurationFromEnv(string $tag): ?int
     {
         $duration = $_ENV["DOCTRINE_CACHE_TABLE_DURATION_{$tag}"] ?? null;
-        if ($duration === null) {
+        if (null === $duration) {
             return null;
         }
 
@@ -696,6 +701,7 @@ class CacheConnection extends Connection
     private function getGlobalCacheDuration(): int
     {
         $globalDuration = $_ENV['DOCTRINE_GLOBAL_CACHE_TABLE_DURATION'] ?? 60 * 60 * 24;
+
         return is_numeric($globalDuration) ? (int) $globalDuration : 60 * 60 * 24;
     }
 
