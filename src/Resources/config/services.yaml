@@ -10,3 +10,8 @@ services:
     resource: '../../Strategy/'
 
   Tourze\CacheStrategy\NoCacheStrategy: ~
+
+  # 将CacheStrategy接口映射到CacheStrategyCollector实现
+  Tourze\CacheStrategy\CacheStrategy:
+    alias: Tourze\DoctrineCacheBundle\Strategy\CacheStrategyCollector
+    public: true

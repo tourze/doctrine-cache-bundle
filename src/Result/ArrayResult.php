@@ -6,7 +6,7 @@ namespace Tourze\DoctrineCacheBundle\Result;
 
 use Doctrine\DBAL\Driver\Result;
 
-class ArrayResult implements Result
+final class ArrayResult implements Result
 {
     private int $currentRow = 0;
 

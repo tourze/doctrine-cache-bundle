@@ -22,7 +22,7 @@ use Tourze\DoctrineHelper\CacheHelper;
 #[AsDoctrineListener(event: Events::postPersist, priority: -99)]
 #[AsDoctrineListener(event: Events::postUpdate, priority: -99)]
 #[WithMonologChannel(channel: 'doctrine_cache')]
-readonly class CacheTagInvalidateListener
+final readonly class CacheTagInvalidateListener
 {
     public function __construct(
         private TagAwareCacheInterface $cache,

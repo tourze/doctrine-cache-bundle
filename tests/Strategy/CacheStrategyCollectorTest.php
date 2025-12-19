@@ -15,59 +15,168 @@ use Tourze\DoctrineCacheBundle\Strategy\CacheStrategyCollector;
 #[CoversClass(CacheStrategyCollector::class)]
 final class CacheStrategyCollectorTest extends TestCase
 {
-    protected function setUp(): void
-    {
-        parent::setUp();
-    }
-
-    public function testShouldCacheReturnsTrueWhenAllStrategiesReturnTrue(): void
-    {
-        // 创建模拟策略，总是返回 true
-        $mockStrategy1 = $this->createMock(CacheStrategy::class);
-        $mockStrategy1->expects($this->once())
-            ->method('shouldCache')
-            ->willReturn(true)
-        ;
-
-        $mockStrategy2 = $this->createMock(CacheStrategy::class);
-        $mockStrategy2->expects($this->once())
-            ->method('shouldCache')
-            ->willReturn(true)
-        ;
-
-        $strategies = [$mockStrategy1, $mockStrategy2];
-
-        $collector = new CacheStrategyCollector($strategies);
-
-        $this->assertTrue($collector->shouldCache('SELECT * FROM users', []));
-    }
-
-    public function testShouldCacheReturnsFalseWhenAnyStrategyReturnsFalse(): void
-    {
-        // 第一个策略返回 true，第二个返回 false
-        $mockStrategy1 = $this->createMock(CacheStrategy::class);
-        $mockStrategy1->expects($this->once())
-            ->method('shouldCache')
-            ->willReturn(true)
-        ;
-
-        $mockStrategy2 = $this->createMock(CacheStrategy::class);
-        $mockStrategy2->expects($this->once())
-            ->method('shouldCache')
-            ->willReturn(false)
-        ;
-
-        $strategies = [$mockStrategy1, $mockStrategy2];
-
-        $collector = new CacheStrategyCollector($strategies);
-
-        $this->assertFalse($collector->shouldCache('SELECT * FROM users', []));
-    }
-
     public function testShouldCacheWithEmptyStrategiesReturnsTrue(): void
     {
         $collector = new CacheStrategyCollector([]);
 
-        $this->assertTrue($collector->shouldCache('SELECT * FROM users', []));
+        $result = $collector->shouldCache('SELECT * FROM users', []);
+
+        $this->assertTrue($result);
+    }
+
+    public function testShouldCacheWithSingleStrategyReturnTrue(): void
+    {
+        $strategy = new class implements CacheStrategy {
+            public function shouldCache(string $query, array $params): bool
+            {
+                return true;
+            }
+        };
+
+        $collector = new CacheStrategyCollector([$strategy]);
+
+        $result = $collector->shouldCache('SELECT * FROM users', []);
+
+        $this->assertTrue($result);
+    }
+
+    public function testShouldCacheWithSingleStrategyReturnFalse(): void
+    {
+        $strategy = new class implements CacheStrategy {
+            public function shouldCache(string $query, array $params): bool
+            {
+                return false;
+            }
+        };
+
+        $collector = new CacheStrategyCollector([$strategy]);
+
+        $result = $collector->shouldCache('SELECT * FROM users', []);
+
+        $this->assertFalse($result);
+    }
+
+    public function testShouldCacheReturnsTrueWhenAllStrategiesReturnTrue(): void
+    {
+        $strategy1 = new class implements CacheStrategy {
+            public function shouldCache(string $query, array $params): bool
+            {
+                return true;
+            }
+        };
+
+        $strategy2 = new class implements CacheStrategy {
+            public function shouldCache(string $query, array $params): bool
+            {
+                return true;
+            }
+        };
+
+        $collector = new CacheStrategyCollector([$strategy1, $strategy2]);
+
+        $result = $collector->shouldCache('SELECT * FROM users', []);
+
+        $this->assertTrue($result);
+    }
+
+    public function testShouldCacheReturnsFalseWhenAnyStrategyReturnsFalse(): void
+    {
+        $strategy1 = new class implements CacheStrategy {
+            public function shouldCache(string $query, array $params): bool
+            {
+                return true;
+            }
+        };
+
+        $strategy2 = new class implements CacheStrategy {
+            public function shouldCache(string $query, array $params): bool
+            {
+                return false;
+            }
+        };
+
+        $collector = new CacheStrategyCollector([$strategy1, $strategy2]);
+
+        $result = $collector->shouldCache('SELECT * FROM users', []);
+
+        $this->assertFalse($result);
+    }
+
+    public function testShouldCacheReturnsFalseWhenFirstStrategyReturnsFalse(): void
+    {
+        $strategy1 = new class implements CacheStrategy {
+            public function shouldCache(string $query, array $params): bool
+            {
+                return false;
+            }
+        };
+
+        $strategy2 = new class implements CacheStrategy {
+            public function shouldCache(string $query, array $params): bool
+            {
+                return true;
+            }
+        };
+
+        $collector = new CacheStrategyCollector([$strategy1, $strategy2]);
+
+        $result = $collector->shouldCache('SELECT * FROM users', []);
+
+        $this->assertFalse($result);
+    }
+
+    public function testShouldCacheWithMultipleStrategiesAllReturnFalse(): void
+    {
+        $strategy1 = new class implements CacheStrategy {
+            public function shouldCache(string $query, array $params): bool
+            {
+                return false;
+            }
+        };
+
+        $strategy2 = new class implements CacheStrategy {
+            public function shouldCache(string $query, array $params): bool
+            {
+                return false;
+            }
+        };
+
+        $collector = new CacheStrategyCollector([$strategy1, $strategy2]);
+
+        $result = $collector->shouldCache('SELECT * FROM users', []);
+
+        $this->assertFalse($result);
+    }
+
+    public function testShouldCachePassesQueryAndParamsToStrategies(): void
+    {
+        $capturedQuery = null;
+        $capturedParams = null;
+
+        $strategy = new class($capturedQuery, $capturedParams) implements CacheStrategy {
+            public function __construct(
+                private mixed &$capturedQuery,
+                private mixed &$capturedParams,
+            ) {
+            }
+
+            public function shouldCache(string $query, array $params): bool
+            {
+                $this->capturedQuery = $query;
+                $this->capturedParams = $params;
+
+                return true;
+            }
+        };
+
+        $collector = new CacheStrategyCollector([$strategy]);
+
+        $testQuery = 'SELECT * FROM users WHERE id = ?';
+        $testParams = ['id' => 123];
+
+        $collector->shouldCache($testQuery, $testParams);
+
+        $this->assertSame($testQuery, $capturedQuery);
+        $this->assertSame($testParams, $capturedParams);
     }
 }

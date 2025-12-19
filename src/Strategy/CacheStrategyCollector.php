@@ -7,7 +7,7 @@ namespace Tourze\DoctrineCacheBundle\Strategy;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 use Tourze\CacheStrategy\CacheStrategy;
 
-readonly class CacheStrategyCollector implements CacheStrategy
+final readonly class CacheStrategyCollector implements CacheStrategy
 {
     /**
      * @param iterable<CacheStrategy> $strategies

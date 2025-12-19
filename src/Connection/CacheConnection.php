@@ -35,7 +35,11 @@ class CacheConnection extends Connection
 {
     private bool $openCache = true;
 
-    // @phpstan-ignore-next-line
+    /**
+     * 装饰器模式：包装一个现有的 Connection 实例并添加缓存功能。
+     * 构造函数参数与父类不同是有意为之的设计决策。
+     */
+    /** @phpstan-ignore-next-line */
     public function __construct(
         private readonly Connection $inner,
         private readonly TagAwareCacheInterface $cache,
